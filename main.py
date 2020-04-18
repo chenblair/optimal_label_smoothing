@@ -12,6 +12,7 @@ from data.cifar import CIFAR10
 from model import CNN_basic, CNN_small, LSTMClassifier
 from loss import cal_loss
 from optimizer import LaProp
+from models import resnet
 import argparse
 import sys
 import numpy as np
@@ -190,6 +191,7 @@ def main():
         help='smoothing parameter (default: 1)')
 
     args = parser.parse_args()
+    args.use_scheduler = False
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
@@ -228,18 +230,29 @@ def main():
     if args.dataset == 'cifar10':
         input_channel = 3
         num_classes = 10
+        transform_train = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
+
+        transform_test = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
         train_dataset = CIFAR10(
             root='./data/',
             download=True,
             train=True,
-            transform=transforms.ToTensor(),
+            transform=transform_train,
             noise_type=args.noise_type,
             noise_rate=args.noise_rate)
         test_dataset = CIFAR10(
             root='./data/',
             download=True,
             train=False,
-            transform=transforms.ToTensor(),
+            transform=transform_test,
             noise_type=args.noise_type,
             noise_rate=args.noise_rate)
         print('loading dataset...')
@@ -273,8 +286,13 @@ def main():
         model = CNN_basic(num_classes=num_classes).to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
     if args.dataset == 'cifar10':
-        model = CNN_small(num_classes=num_classes).to(device)
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+        # model = CNN_small(num_classes=num_classes).to(device)
+        # optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+        model = resnet.ResNet18().to(device)
+        change_lr = lambda epoch: 0.1 if epoch >= 50 else 1.0
+        optimizer = LaProp(filter(lambda p: p.requires_grad, model.parameters()), lr=4e-4)
+        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=change_lr)
+        args.use_scheduler = True
     if args.dataset == 'imdb':
         model = LSTMClassifier(args.batch_size, num_classes, hidden_size,
                                vocab_size, embedding_length, word_embeddings).to(device)
@@ -291,6 +309,8 @@ def main():
         os.system('mkdir -p %s' % args.result_dir)
 
     for epoch in range(1, args.n_epoch + 1):
+        for param_group in optimizer.param_groups:
+            print(epoch, param_group['lr'])
         print(name)
         train_loss = train(
             args,
@@ -306,6 +326,9 @@ def main():
         test_acc, test_loss = test(args, model, device, test_loader, num_classes, text=(args.dataset == 'imdb'))
         test_accs.append(test_acc)
         test_losses.append(test_loss)
+        
+        if (args.use_scheduler):
+            scheduler.step()
         
         # torch.save({
         #     'model_state_dict': model.state_dict(),

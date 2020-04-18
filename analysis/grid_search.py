@@ -4,15 +4,7 @@ import json
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
-
-def get_data(p, a):
-    file_name = "mnist_symmetric_{:.2f}_{:.2f}_1000.0_1.json".format(p, 1 - a)
-    data = json.load(open("{}/{}".format(data_dir, file_name), 'r'))
-    return data
-
-data_dir = "../results/grid_search"
-plot_dir = "plots"
-p_grid = [0.05 * i for i in range(3, 21)]
+from os import path
 
 parser = argparse.ArgumentParser(
         description='Grid Search Runner')
@@ -23,12 +15,29 @@ parser.add_argument(
 parser.add_argument(
         '--y', type=str, help='[train_loss, test_acc, test_loss]', default="test_acc")
 
+parser.add_argument(
+        '--dataset', type=str, help='[mnist, cifar10]', default="mnist")
+
 args = parser.parse_args()
+
+def get_path(p, a):
+    file_name = "{}_symmetric_{:.2f}_{:.2f}_1000.0_1.json".format(args.dataset, p, 1 - a)
+    return "{}/{}".format(data_dir, file_name)
+
+def get_data(p, a):
+    path = get_path(p, a)
+    data = json.load(open(path, 'r'))
+    return data
+
+data_dir = "../results/grid_search/{}".format(args.dataset)
+plot_dir = "plots"
+p_grid = [0.05 * i for i in range(3, 21)]
+a_grid = [0.05 * i for i in range(3, 21)]
 
 if (args.graph == "grid"):
     epoch = 100
 
-    for a in [0.05 * i for i in range(3, 21)]:
+    for a in a_grid:
         accs = []
         for p in p_grid:
             data = get_data(p, a)
@@ -50,3 +59,29 @@ if (args.graph == "fixed_a"):
     plt.xlabel("epochs", fontsize=12)
     plt.ylabel("{}".format(args.y), fontsize=12)
     plt.savefig('{}/grid_search/{}_{}_{}.png'.format(plot_dir, args.graph, args.y, a))
+
+if (args.graph == "heatmap"):
+    epoch = 100
+    data = []
+    for a in reversed(a_grid):
+        data.append([get_data(p, a)[args.y][epoch - 1] for p in p_grid])
+    plt.imshow(data, cmap='viridis', extent=[0.15, 1.0, 0.15, 1.0], vmin=95, vmax=100)
+    plt.xlabel("p", fontsize=12)
+    plt.ylabel("a", fontsize=12)
+    plt.colorbar()
+    plt.savefig('{}/grid_search/{}_{}.png'.format(plot_dir, args.graph, args.y))
+
+if (args.graph == "progress"):
+    data = []
+    for a in reversed(a_grid):
+        data.append([int(path.exists(get_path(p, a))) for p in p_grid])
+    completed = sum([sum(d) for d in data])
+    total = sum([len(d) for d in data])
+    print("{} / {} Experiments Completed".format(completed, total)) 
+    print("{:.2f} %".format(100. * completed / total))  
+    plt.imshow(data, cmap='Blues', extent=[0.15, 1.0, 0.15, 1.0])
+    plt.xlabel("p", fontsize=12)
+    plt.ylabel("a", fontsize=12)
+    plt.colorbar()
+    plt.savefig('{}/grid_search/{}_{}.png'.format(plot_dir, args.graph, args.y))
+            
