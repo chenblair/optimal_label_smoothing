@@ -46,42 +46,13 @@ def train(args,
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
+        output = F.softmax(output, dim=1)
         
-        loss = cal_loss(output, target, eps = 1.0 - args.smoothing, smoothing=True)
-        # output = F.log_softmax(output, dim=1)
+        if (args.smoothing >= 1.0):
+            loss = cal_loss(output, target, smoothing=False)
+        else:
+            loss = cal_loss(output, target, eps = 1.0 - args.smoothing, smoothing=True)
 
-        # label smoothing
-        # p = args.smoothing
-        # output = (output * (2. * p - 1.)) + 1. - p
-        # with torch.no_grad():
-        #     # default to nll
-        #     # if eps > num_classes, model learning is equivalent to nll
-        #     eps = 1000 + num_classes
-
-        #     # set lambda in the gambler's loss
-        #     if (args.lambda_type == 'euc'):
-        #         eps = ((1 - output[:, num_classes])**2 + 1e-10) / (torch.sum(
-        #             (output[:, :num_classes])**2, (1, -1)))
-        #     elif (args.lambda_type == 'mid'):
-        #         eps = ((1 - output[:, num_classes]) + 1e-10) / (torch.sum(
-        #             (output[:, :num_classes])**2, (1, -1)))
-        #     elif (args.lambda_type == 'exp'):
-        #         columns = output[:, :num_classes] + 1E-10
-        #         eps = torch.exp(
-        #             -1 * (torch.sum(torch.log(columns) * columns,
-        #                             (1, -1)) + 1E-10) / torch.sum(
-        #                                 columns, (1, -1)))
-        #     elif (args.lambda_type == 'gmblers'):
-        #         eps = args.eps
-
-        #     if (not use_gamblers):
-        #         eps = 1000 + num_classes
-
-        # # compute gambler's loss
-        # output = (output + (output[:, num_classes] / eps).unsqueeze(1) +
-        #           1E-10).log()
-
-        # loss = F.nll_loss(output, target)
         loss_a.append(loss.item())
         loss.backward()
         optimizer.step()
@@ -136,6 +107,8 @@ def main():
         help='directory to save result txt files',
         default='results')
     parser.add_argument(
+        '--gpu', type=int, help='gpu index', default=0)
+    parser.add_argument(
         '--noise_rate',
         type=float,
         help='corruption rate, should be less than 1',
@@ -189,6 +162,10 @@ def main():
         type=float,
         default=1.0,
         help='smoothing parameter (default: 1)')
+    parser.add_argument(
+        '--optimal_smoothing',
+        action='store_true',
+        default=False)
 
     args = parser.parse_args()
     args.use_scheduler = False
@@ -278,13 +255,13 @@ def main():
             rate=args.noise_rate, batch_size=args.batch_size)
 
     use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
+    device = torch.device("cuda:{}".format(args.gpu) if use_cuda else "cpu")
     print("using {}".format(device))
 
     print('building model...')
     if args.dataset == 'mnist':
         model = CNN_basic(num_classes=num_classes).to(device)
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+        optimizer = LaProp(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, eps=1e-12)
     if args.dataset == 'cifar10':
         # model = CNN_small(num_classes=num_classes).to(device)
         # optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
@@ -302,8 +279,13 @@ def main():
     train_losses = []
     test_losses = []
     out = []
+    
+    if args.optimal_smoothing:
+        clean_rate = 1 - args.noise_rate
+        args.smoothing = (1 - (2 * clean_rate) + clean_rate * clean_rate * num_classes) / (num_classes - 1)
+        print("Using smoothing parameter {:.2f} for clean rate {:.2f}".format(args.smoothing, clean_rate))
 
-    name = "{}_{}_{:.2f}_{:.2f}_{}_{}".format(args.dataset, args.noise_type, args.smoothing, args.noise_rate, args.eps, args.seed)
+    name = "{}_{}_{:.2f}_{}_{}".format(args.dataset, args.noise_type, args.noise_rate, args.eps, args.seed)
 
     if not os.path.exists(args.result_dir):
         os.system('mkdir -p %s' % args.result_dir)
