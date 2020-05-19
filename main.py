@@ -29,7 +29,7 @@ def train(args,
           optimizer,
           epoch,
           num_classes=10,
-          use_gamblers=True,
+          use_method = True,
           text=False):
     model.train()
     loss_a = []
@@ -46,12 +46,11 @@ def train(args,
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
-        output = F.softmax(output, dim=1)
         
-        if (args.smoothing >= 1.0):
-            loss = cal_loss(output, target, smoothing=False)
+        if (use_method):
+            loss = cal_loss(output, target, method=args.method, reduction='mean', p=args.smoothing)
         else:
-            loss = cal_loss(output, target, eps = 1.0 - args.smoothing, smoothing=True)
+            loss = cal_loss(output, target, method='nll', reduction='mean', p=args.smoothing)
 
         loss_a.append(loss.item())
         loss.backward()
@@ -154,7 +153,7 @@ def main():
     parser.add_argument(
         '--lambda_type', type=str, help='[nll, euc, mid, exp, gmblers]', default="euc")
     parser.add_argument(
-        '--start_gamblers', type=int, help='number of epochs before starting gamblers', default=0)
+        '--start_method', type=int, help='number of epochs before starting method', default=0)
 
     # label smoothing args
     parser.add_argument(
@@ -166,6 +165,17 @@ def main():
         '--optimal_smoothing',
         action='store_true',
         default=False)
+    parser.add_argument(
+        '--agnostic_smoothing',
+        action='store_true',
+        default=False)
+    parser.add_argument(
+        '--scale_lr',
+        action='store_true',
+        default=False)
+    
+    parser.add_argument(
+        '--method', type=str, help='[nll, smoothing]', default="nll")
 
     args = parser.parse_args()
     args.use_scheduler = False
@@ -255,13 +265,17 @@ def main():
             rate=args.noise_rate, batch_size=args.batch_size)
 
     use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda:{}".format(args.gpu) if use_cuda else "cpu")
+    device = torch.device("cuda:{}".format(args.gpu) if (use_cuda and args.gpu >= 0) else "cpu")
     print("using {}".format(device))
+    
+    if (args.scale_lr):
+        args.lr *= (0.9 / (args.smoothing - 0.1))
+        print("learning rate scaled to {}".format(args.lr))
 
     print('building model...')
     if args.dataset == 'mnist':
         model = CNN_basic(num_classes=num_classes).to(device)
-        optimizer = LaProp(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, eps=1e-12)
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
     if args.dataset == 'cifar10':
         # model = CNN_small(num_classes=num_classes).to(device)
         # optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
@@ -284,8 +298,11 @@ def main():
         clean_rate = 1 - args.noise_rate
         args.smoothing = (1 - (2 * clean_rate) + clean_rate * clean_rate * num_classes) / (num_classes - 1)
         print("Using smoothing parameter {:.2f} for clean rate {:.2f}".format(args.smoothing, clean_rate))
+    if args.agnostic_smoothing:
+        args.smoothing = (num_classes + 2) / (3 * num_classes)
+        print("Using smoothing parameter {:.2f} for clean rate {:.2f}".format(args.smoothing, 1 - args.noise_rate))
 
-    name = "{}_{}_{:.2f}_{}_{}".format(args.dataset, args.noise_type, args.noise_rate, args.eps, args.seed)
+    name = "{}_{}_{}_{:.2f}_{:.2f}_{}_{}".format(args.dataset, args.method, args.noise_type, args.smoothing, args.noise_rate, args.eps, args.seed)
 
     if not os.path.exists(args.result_dir):
         os.system('mkdir -p %s' % args.result_dir)
@@ -302,7 +319,7 @@ def main():
             optimizer,
             epoch,
             num_classes=num_classes,
-            use_gamblers=(epoch >= args.start_gamblers),
+            use_method=(epoch >= args.start_method),
             text=(args.dataset == 'imdb'))
         train_losses.append(train_loss)
         test_acc, test_loss = test(args, model, device, test_loader, num_classes, text=(args.dataset == 'imdb'))
@@ -320,6 +337,7 @@ def main():
         # }, args.result_dir + "/" + name + "_model.npy")
 
     save_data = {
+        "command": " ".join(sys.argv),
         "train_loss" : train_losses,
         "test_loss" : test_losses,
         "test_acc" : test_accs

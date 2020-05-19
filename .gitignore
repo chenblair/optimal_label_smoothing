@@ -141,3 +141,5 @@ cython_debug/
 data/raw/
 data/processed/
 data/cifar-10*
+results/
+

@@ -29,8 +29,8 @@ def get_data(p, a):
     data = json.load(open(path, 'r'))
     return data
 
-data_dir = "../results/grid_search/{}".format(args.dataset)
-plot_dir = "plots"
+data_dir = "results/grid_search_lr/{}".format(args.dataset)
+plot_dir = "analysis/plots/grid_search_lr"
 p_grid = [0.05 * i for i in range(3, 21)]
 a_grid = [0.05 * i for i in range(3, 21)]
 
@@ -47,7 +47,7 @@ if (args.graph == "grid"):
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.xlabel("p", fontsize=12)
     plt.ylabel("{}".format(args.y), fontsize=12)
-    plt.savefig('{}/grid_search/{}_{}.png'.format(plot_dir, args.graph, args.y), bbox_inches='tight')
+    plt.savefig('{}/{}_{}.png'.format(plot_dir, args.graph, args.y), bbox_inches='tight')
     plt.clf()
 
 if (args.graph == "fixed_a"):
@@ -58,18 +58,18 @@ if (args.graph == "fixed_a"):
     plt.legend()
     plt.xlabel("epochs", fontsize=12)
     plt.ylabel("{}".format(args.y), fontsize=12)
-    plt.savefig('{}/grid_search/{}_{}_{}.png'.format(plot_dir, args.graph, args.y, a))
+    plt.savefig('{}/{}_{}_{}.png'.format(plot_dir, args.graph, args.y, a))
 
 if (args.graph == "heatmap"):
     epoch = 100
     data = []
     for a in reversed(a_grid):
         data.append([get_data(p, a)[args.y][epoch - 1] for p in p_grid])
-    plt.imshow(data, cmap='viridis', extent=[0.15, 1.0, 0.15, 1.0], vmin=95, vmax=100)
+    plt.imshow(data, cmap='viridis', extent=[0.15, 1.0, 0.15, 1.0], vmin=0, vmax=100)
     plt.xlabel("p", fontsize=12)
     plt.ylabel("a", fontsize=12)
     plt.colorbar()
-    plt.savefig('{}/grid_search/{}_{}.png'.format(plot_dir, args.graph, args.y))
+    plt.savefig('{}/{}_{}.png'.format(plot_dir, args.graph, args.y))
 
 if (args.graph == "progress"):
     data = []
@@ -83,5 +83,5 @@ if (args.graph == "progress"):
     plt.xlabel("p", fontsize=12)
     plt.ylabel("a", fontsize=12)
     plt.colorbar()
-    plt.savefig('{}/grid_search/{}_{}.png'.format(plot_dir, args.graph, args.y))
+    plt.savefig('{}/{}_{}.png'.format(plot_dir, args.graph, args.y))
             
