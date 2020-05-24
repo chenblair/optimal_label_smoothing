@@ -11,7 +11,7 @@ case $2 in
         ARGS="--agnostic_smoothing"
         ;;
     fsmoothing)
-        ARGS="--scale_lr"
+        ARGS="--seed 3 --scale_lr"
         ;;
     coteaching)
         ARGS=""

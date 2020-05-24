@@ -269,7 +269,7 @@ def main():
     print("using {}".format(device))
     
     if (args.scale_lr):
-        args.lr *= (0.9 / (args.smoothing - 0.1))
+        args.lr *= ((0.9 / (args.smoothing - 0.1)) ** 0.5)
         print("learning rate scaled to {}".format(args.lr))
 
     print('building model...')
