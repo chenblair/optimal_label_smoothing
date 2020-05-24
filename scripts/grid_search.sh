@@ -26,9 +26,9 @@ do
 # do
 #     for noise_rate in 0.00 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.10
 #     do
-        ((i=i%20)); ((i++==0)) && wait
-        echo running $p $noise_rate
-        python3 main.py --result_dir results/grid_search/$1/$2 --gpu $((i%2)) --method $2 --dataset $1 --noise_rate $noise_rate --smoothing $p --lr 0.01 --batch_size 128 --noise_type symmetric --n_epoch 100 --lambda_type nll $ARGS > /dev/null || break 2 &
+        #((i=i%20)); ((i++==0)) && wait
+        #echo running $p $noise_rate
+        python3 main.py --result_dir results/grid_search/$1/$2 --gpu $((i%2)) --method $2 --dataset $1 --noise_rate $noise_rate --smoothing $p --lr 0.01 --batch_size 128 --noise_type symmetric --n_epoch 100 --lambda_type nll $ARGS || break 2 
     done
 done
 

@@ -23,7 +23,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 def get_path(p, a):
-    file_name = "{}_fsmoothing_symmetric_{:.2f}_{:.2f}_1000.0_3.json".format(args.dataset, p, 1 - a)
+    file_name = "{}_smoothing_symmetric_{:.2f}_{:.2f}_1000.0_1.json".format(args.dataset, p, 1 - a)
     return "{}/{}".format(data_dir, file_name)
 
 def get_data(p, a):
@@ -31,20 +31,13 @@ def get_data(p, a):
     data = json.load(open(path, 'r'))
     return data
 
-<<<<<<< HEAD
-data_dir = "results/grid_search_lr/{}".format(args.dataset)
-plot_dir = "analysis/plots/grid_search_lr"
+data_dir = "results/grid_search/{}/smoothing".format(args.dataset)
+plot_dir = "analysis/plots/grid_search/smoothing"
 # p_grid = [0.05 * i for i in range(3, 21)]
 # a_grid = [0.05 * i for i in range(3, 21)]
-p_grid = [0.01 * i for i in range(11, 101)]
+p_grid = np.array([0.01 * i for i in range(11, 101)])
 a_grid = [0.01 * i for i in range(11, 101)]
 
-=======
-data_dir = "results/grid_search/{}/fsmoothing".format(args.dataset)
-plot_dir = "analysis/plots/grid_search/fsmoothing"
-p_grid = np.array([0.05 * i for i in range(3, 21)])
-a_grid = [0.05 * i for i in range(3, 21)]
->>>>>>> master
 if (args.graph == "grid"):
     epoch = 100
 
@@ -77,8 +70,8 @@ if (args.graph == "heatmap"):
     scatter_data = [[], []]
     for a in reversed(a_grid):
         data.append([get_data(p, a)[args.y][epoch - 1] for p in p_grid])
-        scatter_data[0].append(a - 0.025)
-        scatter_data[1].append(p_grid[np.argmax(data[-1])] - 0.025)
+        scatter_data[0].append(a - 0.005)
+        scatter_data[1].append(p_grid[np.argmax(data[-1])] - 0.005)
     data = np.array(data)[::-1,::-1].T
     plt.scatter(scatter_data[0], scatter_data[1], marker="+", color="red")
     plt.imshow(data, cmap='viridis', extent=[0.1, 1.0, 0.1, 1.0], vmin=0, vmax=100)
@@ -88,8 +81,8 @@ if (args.graph == "heatmap"):
     plt.xlabel("a", fontsize=12)
     plt.ylabel("p", fontsize=12)
     plt.colorbar()
-    plt.savefig('{}/{}_{}3.png'.format(plot_dir, args.graph, args.y))
-    print('{}/{}_{}3.png'.format(plot_dir, args.graph, args.y))
+    plt.savefig('{}/smoothing_{}_{}.png'.format(plot_dir, args.graph, args.y))
+    print('{}/smoothing_{}_{}.png'.format(plot_dir, args.graph, args.y))
 
 if (args.graph == "progress"):
     data = []
@@ -130,7 +123,7 @@ if (args.graph == 'relaxation'):
         largest = max(largest, max(data[a]))
     for a in clean_rates:
         # data[a] = 10 * np.array(data[a]) / largest
-        plt.scatter(p_grid - 0.1, data[a], marker="+", color=colormap[a], label=r'a={}'.format(a))
+        plt.scatter(p_grid - 0.1, data[a], marker="+", color=colormap[a], label=r'a={}'.format(a), s=0.001)
     
     regr = linear_model.LinearRegression()
     all_x = [[x] for x in all_x]
