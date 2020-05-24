@@ -31,8 +31,10 @@ def get_data(p, a):
 
 data_dir = "results/grid_search_lr/{}".format(args.dataset)
 plot_dir = "analysis/plots/grid_search_lr"
-p_grid = [0.05 * i for i in range(3, 21)]
-a_grid = [0.05 * i for i in range(3, 21)]
+# p_grid = [0.05 * i for i in range(3, 21)]
+# a_grid = [0.05 * i for i in range(3, 21)]
+p_grid = [0.01 * i for i in range(11, 101)]
+a_grid = [0.01 * i for i in range(11, 101)]
 
 if (args.graph == "grid"):
     epoch = 100
