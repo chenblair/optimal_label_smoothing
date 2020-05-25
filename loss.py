@@ -23,9 +23,11 @@ def fsmoothing_loss(pred, target, p=1.0, **kwargs):
     one_hot = torch.eye(n_class, n_class).to(pred.get_device())
     one_hot = one_hot * p + (1 - one_hot) * (1 - p) / (n_class - 1)
     
+    pred = F.softmax(pred, dim=1)
     pred = torch.matmul(pred, one_hot)
+    pred = pred.log()
     
-    loss = nll_loss(pred, target)
+    loss = F.nll_loss(pred, target)
     return loss
 
 def agnostic_smoothing_loss(pred, target, p=1.0, **kwargs):
