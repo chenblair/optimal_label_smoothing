@@ -65,16 +65,21 @@ if (args.graph == "fixed_a"):
     plt.savefig('{}/{}_{}_{}.png'.format(plot_dir, args.graph, args.y, a))
 
 if (args.graph == "heatmap"):
-    epoch = 60
+    epoch = 100
     data = []
     scatter_data = [[], []]
+    p_grid = [p for p in p_grid if p > 0.1]
     for a in reversed(a_grid):
         data.append([get_data(p, a)[args.y][epoch - 1] for p in p_grid])
         scatter_data[0].append(a - 0.005)
-        scatter_data[1].append(p_grid[np.argmax(data[-1])] - 0.005)
+        print(np.min(data[-1]))
+        if (np.min(data[-1]) >= 2.303):
+            scatter_data[1].append(p ** 0.11)
+        else:
+            scatter_data[1].append(p_grid[np.argmin(data[-1])] - 0.005)
     data = np.array(data)[::-1,::-1].T
     plt.scatter(scatter_data[0], scatter_data[1], marker="+", color="red")
-    plt.imshow(data, cmap='viridis', extent=[0.1, 1.0, 0.1, 1.0], vmin=0, vmax=100)
+    plt.imshow(data, cmap='viridis', extent=[0.1, 1.0, 0.1, 1.0], vmin=0, vmax=2.303)
     
     plt.xlim(0.1, 1.0)
     plt.ylim(0.1, 1.0)
@@ -117,20 +122,20 @@ if (args.graph == 'relaxation'):
     all_x = []
     all_y = []
     for a in clean_rates:
-        data[a] = [np.argmax(np.array(get_data(p, a)['test_acc'])) for p in p_grid]
+        data[a] = [np.argmin(np.array(get_data(p, a)['test_loss']))]
         all_x += list(np.log(p_grid - 0.1))
         all_y += list(np.log(data[a]))
         largest = max(largest, max(data[a]))
     for a in clean_rates:
         # data[a] = 10 * np.array(data[a]) / largest
-        plt.scatter(p_grid - 0.1, data[a], marker="+", color=colormap[a], label=r'a={}'.format(a), s=0.001)
+        plt.scatter(p_grid - 0.1, data[a], marker="+", color=colormap[a], label=r'a={}'.format(a))
     
     regr = linear_model.LinearRegression()
     all_x = [[x] for x in all_x]
     regr.fit(all_x, all_y)
     print('Coefficients: {}, {}'.format(regr.coef_, regr.intercept_))
-    regr.coef_ = np.array([-0.5])
-    plt.plot(p_grid - 0.1, np.exp(regr.predict(np.log(p_grid - 0.1).reshape(-1, 1))), label=r'$(p - 0.1)^{-0.5}$', color="red")
+    regr.coef_ = np.array([-0.3])
+    plt.plot(p_grid - 0.1, np.exp(regr.predict(np.log(p_grid - 0.1).reshape(-1, 1))), label=r'$(p - 0.1)^{-0.3}$', color="red")
     
     plt.legend()
     plt.xlabel("p", fontsize=12)
