@@ -23,7 +23,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 def get_path(p, a):
-    file_name = "{}_fsmoothing_symmetric_{:.2f}_{:.2f}_1000.0_5.json".format(args.dataset, p, 1 - a)
+    file_name = "{}_symmetric_{:.2f}_{:.2f}_1000.0_2.json".format(args.dataset, p, 1 - a)
     return "{}/{}".format(data_dir, file_name)
 
 def get_data(p, a):
@@ -31,8 +31,8 @@ def get_data(p, a):
     data = json.load(open(path, 'r'))
     return data
 
-data_dir = "results/grid_search/{}/fsmoothing".format(args.dataset)
-plot_dir = "analysis/plots/grid_search/fsmoothing"
+data_dir = "results/grid_search_lr/{}".format(args.dataset)
+plot_dir = "analysis/plots/performance/smoothing"
 p_grid = np.array([0.05 * i for i in range(3, 21)])
 a_grid = [0.05 * i for i in range(3, 21)]
 
@@ -63,6 +63,7 @@ if (args.graph == "fixed_a"):
     plt.savefig('{}/{}_{}_{}.png'.format(plot_dir, args.graph, args.y, a))
 
 if (args.graph == "heatmap"):
+    plt.figure(figsize=(3.5, 3))
     epoch = 60
     data = []
     scatter_data = [[], []]
@@ -72,7 +73,8 @@ if (args.graph == "heatmap"):
         scatter_data[1].append(p_grid[np.argmax(data[-1])] - 0.025)
     data = np.array(data)[::-1,::-1].T
     plt.scatter(scatter_data[0], scatter_data[1], marker="+", color="red")
-    plt.imshow(data, cmap='viridis', extent=[0.1, 1.0, 0.1, 1.0], vmin=0, vmax=100)
+    im = plt.imshow(data, cmap='viridis', extent=[0.1, 1.0, 0.1, 1.0], vmin=0, vmax=100, interpolation='none')
+    plt.colorbar(im,fraction=0.046, pad=0.04)
     
     plt.xlim(0.1, 1.0)
     plt.ylim(0.1, 1.0)
@@ -107,6 +109,7 @@ if (args.graph == 'curve'):
     plt.savefig('{}/{}_{}_{}_{}.png'.format(plot_dir, args.graph, args.y, p, clean_rate))
 
 if (args.graph == 'relaxation'):
+    plt.figure(figsize=(3.5, 3))
     clean_rates = [0.25, 0.4, 0.65]
     colormap = {0.25: "blue", 0.4: "orange", 0.65: "green"}
     
@@ -130,8 +133,10 @@ if (args.graph == 'relaxation'):
     regr.coef_ = np.array([-0.72])
     plt.plot(p_grid - 0.1, np.exp(regr.predict(np.log(p_grid - 0.1).reshape(-1, 1))), label=r'$(p - 0.1)^{-0.72}$', color="red")
     
-    plt.legend()
-    plt.xlabel("p", fontsize=12)
+    handles, labels = plt.gca().get_legend_handles_labels()
+    order = [1, 2, 3, 0]
+    plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], prop={'size': 8})  
+    plt.xlabel(r'p - 0.1', fontsize=12)
     plt.xscale("log")
     plt.ylabel("relaxation time", fontsize=12)
     plt.yscale("log")
