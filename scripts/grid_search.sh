@@ -11,7 +11,7 @@ case $2 in
         ARGS="--agnostic_smoothing"
         ;;
     fsmoothing)
-        ARGS="--seed 4"
+        ARGS="--seed 5 --scale_lr"
         ;;
     coteaching)
         ARGS=""
@@ -28,5 +28,7 @@ do
     done
 done
 
+
+# python3 main.py --result_dir results --method fsmoothing --dataset mnist --noise_rate 0.0 --smoothing 1.0 --lr 0.01 --batch_size 128 --noise_type symmetric --n_epoch 100 --lambda_type nll
 # python3 main.py --result_dir results/grid_search --dataset mnist --noise_rate 0.0 --smoothing 1.0 --lr 0.1 --batch_size 128 --noise_type symmetric --n_epoch 50 --lambda_type nll
 # python3 main.py --result_dir results/grid_search --dataset cifar10 --noise_rate 0.0 --smoothing 1.0 --batch_size 128 --noise_type symmetric --n_epoch 50 --lambda_type nll

@@ -23,7 +23,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 def get_path(p, a):
-    file_name = "{}_smoothing_symmetric_{:.2f}_{:.2f}_1000.0_1.json".format(args.dataset, p, 1 - a)
+    file_name = "{}_fsmoothing_symmetric_{:.2f}_{:.2f}_1000.0_5.json".format(args.dataset, p, 1 - a)
     return "{}/{}".format(data_dir, file_name)
 
 def get_data(p, a):
@@ -31,12 +31,10 @@ def get_data(p, a):
     data = json.load(open(path, 'r'))
     return data
 
-data_dir = "results/grid_search/{}/smoothing".format(args.dataset)
-plot_dir = "analysis/plots/grid_search/smoothing"
-# p_grid = [0.05 * i for i in range(3, 21)]
-# a_grid = [0.05 * i for i in range(3, 21)]
-p_grid = np.array([0.01 * i for i in range(11, 101)])
-a_grid = [0.01 * i for i in range(11, 101)]
+data_dir = "results/grid_search/{}/fsmoothing".format(args.dataset)
+plot_dir = "analysis/plots/grid_search/fsmoothing"
+p_grid = np.array([0.05 * i for i in range(3, 21)])
+a_grid = [0.05 * i for i in range(3, 21)]
 
 if (args.graph == "grid"):
     epoch = 100
@@ -70,8 +68,8 @@ if (args.graph == "heatmap"):
     scatter_data = [[], []]
     for a in reversed(a_grid):
         data.append([get_data(p, a)[args.y][epoch - 1] for p in p_grid])
-        scatter_data[0].append(a - 0.005)
-        scatter_data[1].append(p_grid[np.argmax(data[-1])] - 0.005)
+        scatter_data[0].append(a - 0.025)
+        scatter_data[1].append(p_grid[np.argmax(data[-1])] - 0.025)
     data = np.array(data)[::-1,::-1].T
     plt.scatter(scatter_data[0], scatter_data[1], marker="+", color="red")
     plt.imshow(data, cmap='viridis', extent=[0.1, 1.0, 0.1, 1.0], vmin=0, vmax=100)
@@ -116,21 +114,21 @@ if (args.graph == 'relaxation'):
     largest = 0
     all_x = []
     all_y = []
-    for a in clean_rates:
+    for a in a_grid:
         data[a] = [np.argmax(np.array(get_data(p, a)['test_acc'])) for p in p_grid]
         all_x += list(np.log(p_grid - 0.1))
         all_y += list(np.log(data[a]))
         largest = max(largest, max(data[a]))
     for a in clean_rates:
         # data[a] = 10 * np.array(data[a]) / largest
-        plt.scatter(p_grid - 0.1, data[a], marker="+", color=colormap[a], label=r'a={}'.format(a), s=0.001)
+        plt.scatter(p_grid - 0.1, data[a], marker="+", color=colormap[a], label=r'a={}'.format(a))
     
     regr = linear_model.LinearRegression()
     all_x = [[x] for x in all_x]
     regr.fit(all_x, all_y)
     print('Coefficients: {}, {}'.format(regr.coef_, regr.intercept_))
-    regr.coef_ = np.array([-0.5])
-    plt.plot(p_grid - 0.1, np.exp(regr.predict(np.log(p_grid - 0.1).reshape(-1, 1))), label=r'$(p - 0.1)^{-0.5}$', color="red")
+    regr.coef_ = np.array([-0.72])
+    plt.plot(p_grid - 0.1, np.exp(regr.predict(np.log(p_grid - 0.1).reshape(-1, 1))), label=r'$(p - 0.1)^{-0.72}$', color="red")
     
     plt.legend()
     plt.xlabel("p", fontsize=12)
