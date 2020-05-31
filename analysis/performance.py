@@ -22,16 +22,16 @@ parser.add_argument(
         '--task', type=str, help='[stats, curve]', default="stats")
 
 args = parser.parse_args()
+# results/grid_search/mnist/smoothing/mnist_smoothing_symmetric_0.11_0.50_2.json
+data_dir = "results/grid_search/{}/{}".format(args.dataset, args.method)
+plot_dir = "analysis/plots/performance"
 
-data_dir = "results/performance/{}/{}".format(args.dataset, args.method)
-plot_dir = "plots/performance"
-
-def get_path(a, seed):
-    file_name = "{}_symmetric_{:.2f}_1000.0_{}.json".format(args.dataset, 1 - a, seed)
+def get_path(a, p, seed):
+    file_name = "{}_smoothing_symmetric_{:.2f}_{:.2f}_{}.json".format(args.dataset, p, 1 - a, seed)
     return "{}/{}".format(data_dir, file_name)
 
-def get_data(a, seed):
-    path = get_path(a, seed)
+def get_data(a, p, seed):
+    path = get_path(a, p, seed)
     data = json.load(open(path, 'r'))
     return data
 
@@ -47,7 +47,7 @@ if (args.task == 'stats'):
 elif (args.task == 'curve'):
     clean_rate = 0.5
     
-    data = get_data(clean_rate, 1)[args.y]
+    data = get_data(clean_rate, 0.11, 2)[args.y]
     plt.plot(np.arange(0, len(data), 1), data)
     plt.xlabel("epoch", fontsize=12)
     plt.ylabel("{}".format(args.y), fontsize=12)

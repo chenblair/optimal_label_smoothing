@@ -256,6 +256,7 @@ def main():
     if args.dataset == 'mnist':
         model = cnns.CNN_basic(num_classes=num_classes).to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
+        # optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     if args.dataset == 'cifar10':
         model = resnet.ResNet18().to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
@@ -301,6 +302,7 @@ def main():
         "test_acc" : test_accs
     }
     save_file = args.result_dir + "/" + name + ".json"
+    print(save_file)
     json.dump(save_data, open(save_file, 'w'))
 
 if __name__ == '__main__':
