@@ -30,17 +30,6 @@ def fsmoothing_loss(pred, target, p=1.0, **kwargs):
     loss = F.nll_loss(pred, target)
     return loss
 
-def agnostic_smoothing_loss(pred, target, p=1.0, **kwargs):
-    n_class = pred.size(1)
-
-    one_hot = torch.zeros_like(pred).scatter(1, target.view(-1, 1), 1)
-    one_hot = one_hot * p + (1 - one_hot) * (1 - p) / (n_class - 1)
-    log_prb = F.log_softmax(pred, dim=1)
-
-    loss = -(one_hot * log_prb).sum(dim=1)
-
-    return loss
-
 def lq_loss(pred, target, q=0.7, **kwargs):
     pred = F.softmax(pred, dim=1)
     loss = -1 * F.nll_loss(pred, target, reduction='none')

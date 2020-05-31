@@ -149,9 +149,6 @@ def main():
         default=0.001,
         metavar='LR',
         help='learning rate (default: 0.001)')
-    parser.add_argument('--eps', type=float, help='set lambda for lambda type \'gmblers\' only', default=1000.0)
-    parser.add_argument(
-        '--lambda_type', type=str, help='[nll, euc, mid, exp, gmblers]', default="euc")
     parser.add_argument(
         '--start_method', type=int, help='number of epochs before starting method', default=0)
 
@@ -166,19 +163,15 @@ def main():
         action='store_true',
         default=False)
     parser.add_argument(
-        '--agnostic_smoothing',
-        action='store_true',
-        default=False)
-    parser.add_argument(
         '--scale_lr',
         type=float,
-        default=0.0)
+        default=0.0,
+        help='exponent to scale learning rate by')
     
     parser.add_argument(
-        '--method', type=str, help='[nll, smoothing]', default="nll")
+        '--method', type=str, help='[nll, smoothing, fsmoothing]', default="nll")
 
     args = parser.parse_args()
-    args.use_scheduler = False
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
@@ -256,14 +249,6 @@ def main():
             drop_last=True,
             shuffle=False)
 
-    if args.dataset == 'imdb':
-        num_classes = 2
-        embedding_length = 300
-        hidden_size = 256
-        print('loading dataset...')
-        TEXT, vocab_size, word_embeddings, train_loader, valid_iter, test_loader = load_data.load_dataset(
-            rate=args.noise_rate, batch_size=args.batch_size)
-
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda:{}".format(args.gpu) if (use_cuda and args.gpu >= 0) else "cpu")
     print("using {}".format(device))
@@ -276,17 +261,8 @@ def main():
         model = CNN_basic(num_classes=num_classes).to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
     if args.dataset == 'cifar10':
-        # model = CNN_small(num_classes=num_classes).to(device)
-        # optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
         model = resnet.ResNet18().to(device)
-        change_lr = lambda epoch: 0.1 if epoch >= 50 else 1.0
-        optimizer = LaProp(filter(lambda p: p.requires_grad, model.parameters()), lr=4e-4)
-        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=change_lr)
-        args.use_scheduler = True
-    if args.dataset == 'imdb':
-        model = LSTMClassifier(args.batch_size, num_classes, hidden_size,
-                               vocab_size, embedding_length, word_embeddings).to(device)
-        optimizer = LaProp(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 
     test_accs = []
     train_losses = []
@@ -297,9 +273,6 @@ def main():
         clean_rate = 1 - args.noise_rate
         args.smoothing = (1 - (2 * clean_rate) + clean_rate * clean_rate * num_classes) / (num_classes - 1)
         print("Using smoothing parameter {:.2f} for clean rate {:.2f}".format(args.smoothing, clean_rate))
-    if args.agnostic_smoothing:
-        args.smoothing = (num_classes + 2) / (3 * num_classes)
-        print("Using smoothing parameter {:.2f} for clean rate {:.2f}".format(args.smoothing, 1 - args.noise_rate))
 
     name = "{}_{}_{}_{:.2f}_{:.2f}_{}_{}".format(args.dataset, args.method, args.noise_type, args.smoothing, args.noise_rate, args.eps, args.seed)
 
@@ -324,9 +297,6 @@ def main():
         test_acc, test_loss = test(args, model, device, test_loader, num_classes, text=(args.dataset == 'imdb'))
         test_accs.append(test_acc)
         test_losses.append(test_loss)
-        
-        if (args.use_scheduler):
-            scheduler.step()
 
     save_data = {
         "command": " ".join(sys.argv),
