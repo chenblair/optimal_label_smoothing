@@ -9,17 +9,13 @@ import torchvision.transforms as transforms
 from torchvision import datasets
 from data.mnist import MNIST
 from data.cifar import CIFAR10
-from model import CNN_basic, CNN_small, LSTMClassifier
 from loss import cal_loss
-from optimizer import LaProp
-from models import resnet
+from models import resnet, cnns
 import argparse
 import sys
 import numpy as np
 import datetime
 import shutil
-import load_data
-import pdb
 
 
 def train(args,
@@ -258,7 +254,7 @@ def main():
 
     print('building model...')
     if args.dataset == 'mnist':
-        model = CNN_basic(num_classes=num_classes).to(device)
+        model = cnns.CNN_basic(num_classes=num_classes).to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
     if args.dataset == 'cifar10':
         model = resnet.ResNet18().to(device)
@@ -274,7 +270,7 @@ def main():
         args.smoothing = (1 - (2 * clean_rate) + clean_rate * clean_rate * num_classes) / (num_classes - 1)
         print("Using smoothing parameter {:.2f} for clean rate {:.2f}".format(args.smoothing, clean_rate))
 
-    name = "{}_{}_{}_{:.2f}_{:.2f}_{}_{}".format(args.dataset, args.method, args.noise_type, args.smoothing, args.noise_rate, args.eps, args.seed)
+    name = "{}_{}_{}_{:.2f}_{:.2f}_{}".format(args.dataset, args.method, args.noise_type, args.smoothing, args.noise_rate, args.seed)
 
     if not os.path.exists(args.result_dir):
         os.system('mkdir -p %s' % args.result_dir)
