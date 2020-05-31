@@ -123,7 +123,6 @@ if (args.graph == 'relaxation'):
         all_y += list(np.log(data[a]))
         largest = max(largest, max(data[a]))
     for a in clean_rates:
-        # data[a] = 10 * np.array(data[a]) / largest
         plt.scatter(p_grid - 0.1, data[a], marker="+", color=colormap[a], label=r'a={}'.format(a))
     
     regr = linear_model.LinearRegression()

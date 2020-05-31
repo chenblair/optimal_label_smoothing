@@ -171,8 +171,8 @@ def main():
         default=False)
     parser.add_argument(
         '--scale_lr',
-        action='store_true',
-        default=False)
+        type=float,
+        default=0.0)
     
     parser.add_argument(
         '--method', type=str, help='[nll, smoothing]', default="nll")
@@ -268,9 +268,8 @@ def main():
     device = torch.device("cuda:{}".format(args.gpu) if (use_cuda and args.gpu >= 0) else "cpu")
     print("using {}".format(device))
     
-    if (args.scale_lr):
-        args.lr *= ((0.9 / (args.smoothing - 0.1)) ** 0.5)
-        print("learning rate scaled to {}".format(args.lr))
+    args.lr *= ((0.9 / (args.smoothing - 0.1)) ** args.scale_lr)
+    print("learning rate scaled to {}".format(args.lr))
 
     print('building model...')
     if args.dataset == 'mnist':
@@ -328,13 +327,6 @@ def main():
         
         if (args.use_scheduler):
             scheduler.step()
-        
-        # torch.save({
-        #     'model_state_dict': model.state_dict(),
-        #     'optimizer_state_dict': optimizer.state_dict(),
-        #     'loss': loss,
-        #     'test_acc': acc
-        # }, args.result_dir + "/" + name + "_model.npy")
 
     save_data = {
         "command": " ".join(sys.argv),
