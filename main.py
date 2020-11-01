@@ -9,6 +9,7 @@ import torchvision.transforms as transforms
 from torchvision import datasets
 from data.mnist import MNIST
 from data.cifar import CIFAR10
+from data.synthetic import SyntheticDataset
 from loss import cal_loss
 from models import resnet, cnns
 import argparse
@@ -166,11 +167,40 @@ def main():
     
     parser.add_argument(
         '--method', type=str, help='[nll, smoothing, fsmoothing]', default="nll")
+    parser.add_argument(
+        '--use_scheduler',
+        action='store_true',
+        default=False)
 
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
+    if args.dataset == 'synthetic':
+        num_classes = 2
+        train_dataset = SyntheticDataset(
+            train=True,
+            seed=args.seed,
+            size=2000,
+            noise_rate=args.noise_rate)
+        test_dataset = SyntheticDataset(
+            train=False,
+            seed=args.seed,
+            size=500,
+            noise_rate=args.noise_rate)
+        print('loading dataset...')
+        train_loader = torch.utils.data.DataLoader(
+            dataset=train_dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            drop_last=True,
+            shuffle=True)
+        test_loader = torch.utils.data.DataLoader(
+            dataset=test_dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            drop_last=True,
+            shuffle=False)
 
     if args.dataset == 'mnist':
         input_channel = 1
@@ -253,12 +283,18 @@ def main():
     print("learning rate scaled to {}".format(args.lr))
 
     print('building model...')
+    if args.dataset == 'synthetic':
+        model = cnns.Small_Net().to(device)
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
     if args.dataset == 'mnist':
         model = cnns.CNN_basic(num_classes=num_classes).to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
     if args.dataset == 'cifar10':
         model = resnet.ResNet18().to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
+        if (args.use_scheduler):
+            change_lr = lambda epoch: pow(0.2, int(epoch >= 50) + int(epoch >= 75))
+            scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=change_lr)
 
     test_accs = []
     train_losses = []
@@ -274,6 +310,9 @@ def main():
 
     if not os.path.exists(args.result_dir):
         os.system('mkdir -p %s' % args.result_dir)
+
+    save_file = args.result_dir + "/" + name + ".json"
+    json.dump({"in progress": 1}, open(save_file, 'w'))
 
     for epoch in range(1, args.n_epoch + 1):
         for param_group in optimizer.param_groups:
@@ -293,6 +332,8 @@ def main():
         test_acc, test_loss = test(args, model, device, test_loader, num_classes, text=(args.dataset == 'imdb'))
         test_accs.append(test_acc)
         test_losses.append(test_loss)
+        if (args.use_scheduler):
+            scheduler.step()
 
     save_data = {
         "command": " ".join(sys.argv),

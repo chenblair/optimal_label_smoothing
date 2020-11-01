@@ -66,6 +66,10 @@ class MNIST(data.Dataset):
         else:
             self.test_data, self.test_labels = torch.load(
                 os.path.join(self.root, self.processed_folder, self.test_file))
+            
+            self.test_labels=np.asarray([[self.test_labels[i]] for i in range(len(self.test_labels))])
+            self.test_noisy_labels, self.actual_noise_rate = noisify(dataset=self.dataset, train_labels=self.test_labels, noise_type=noise_type, noise_rate=noise_rate, random_state=random_state)
+            self.test_noisy_labels=[i[0] for i in self.test_noisy_labels]
 
     def __getitem__(self, index):
         """
@@ -82,7 +86,8 @@ class MNIST(data.Dataset):
             else:
                 img, target = self.train_data[index], self.train_labels[index]
         else:
-            img, target = self.test_data[index], self.test_labels[index]
+            img, target = self.test_data[index], self.test_noisy_labels[index]
+            # img, target = self.test_data[index], self.test_labels[index]
 
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image

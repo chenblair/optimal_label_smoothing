@@ -108,6 +108,10 @@ class CIFAR10(data.Dataset):
             else:
                 self.test_labels = entry['fine_labels']
             fo.close()
+            self.test_labels=np.asarray([[self.test_labels[i]] for i in range(len(self.test_labels))])
+            self.test_noisy_labels, self.actual_noise_rate = noisify(dataset=self.dataset, train_labels=self.test_labels, noise_type=noise_type, noise_rate=noise_rate, random_state=random_state, nb_classes=self.nb_classes)
+            self.test_noisy_labels=[i[0] for i in self.test_noisy_labels]
+
             self.test_data = self.test_data.reshape((10000, 3, 32, 32))
             self.test_data = self.test_data.transpose((0, 2, 3, 1))  # convert to HWC
 
@@ -125,7 +129,7 @@ class CIFAR10(data.Dataset):
             else:
                 img, target = self.train_data[index], self.train_labels[index]
         else:
-            img, target = self.test_data[index], self.test_labels[index]
+            img, target = self.test_data[index], self.test_noisy_labels[index]
 
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image

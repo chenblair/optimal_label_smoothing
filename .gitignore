@@ -143,3 +143,4 @@ data/processed/
 data/cifar-10*
 results/
 submission.zip
+*.json

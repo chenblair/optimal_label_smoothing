@@ -18,12 +18,12 @@ parser.add_argument(
         '--y', type=str, help='[train_loss, test_acc, test_loss]', default="test_acc")
 
 parser.add_argument(
-        '--dataset', type=str, help='[mnist, cifar10]', default="mnist")
+        '--dataset', type=str, help='[mnist1000, cifar10]', default="mnist10000")
 
 args = parser.parse_args()
 
 def get_path(p, a):
-    file_name = "{}_symmetric_{:.2f}_{:.2f}_1000.0_2.json".format(args.dataset, p, 1 - a)
+    file_name = "{}_symmetric_{:.2f}_{:.2f}_1000.0_1.json".format(args.dataset, p, 1 - a)
     return "{}/{}".format(data_dir, file_name)
 
 def get_data(p, a):
@@ -31,8 +31,8 @@ def get_data(p, a):
     data = json.load(open(path, 'r'))
     return data
 
-data_dir = "results/grid_search_lr/{}".format(args.dataset)
-plot_dir = "analysis/plots/performance/smoothing"
+data_dir = "results/grid_search"
+plot_dir = "analysis/plots/aistats"
 p_grid = np.array([0.05 * i for i in range(3, 21)])
 a_grid = [0.05 * i for i in range(3, 21)]
 
@@ -41,7 +41,7 @@ if (args.graph == "grid"):
 
     for a in a_grid:
         accs = []
-        for p in p_grid:
+        for p in reverse(p_grid):
             data = get_data(p, a)
             accs.append(data[args.y][epoch - 1])
         plt.plot(p_grid, accs, label="a={:.2f}".format(a))
