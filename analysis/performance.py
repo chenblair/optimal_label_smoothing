@@ -35,6 +35,7 @@ def get_data(a, p, seed):
     data = json.load(open(path, 'r'))
     return data
 
+save_file = ''
 epoch = 99
 
 if (args.task == 'stats'):
@@ -45,6 +46,7 @@ if (args.task == 'stats'):
         # print(data)
         print("clean rate: {}, {}: {:.2f}+-{:.2f}".format(clean_rate, args.y, np.mean(data), np.std(data)))
 elif (args.task == 'curve'):
+    save_file = '{}/{}_{}_{}.png'.format(plot_dir, args.task, args.y, args.method)
     clean_rate = 0.5
     
     data = get_data(clean_rate, 0.11, 2)[args.y]
@@ -52,3 +54,4 @@ elif (args.task == 'curve'):
     plt.xlabel("epoch", fontsize=12)
     plt.ylabel("{}".format(args.y), fontsize=12)
     plt.savefig('{}/{}_{}_{}.png'.format(plot_dir, args.task, args.y, args.method))
+print(save_file)

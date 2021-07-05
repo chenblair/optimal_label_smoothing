@@ -23,7 +23,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 def get_path(p, a):
-    file_name = "{}_symmetric_{:.2f}_{:.2f}_1000.0_2.json".format(args.dataset, p, 1 - a)
+    file_name = "{}_smoothing_symmetric_{:.2f}_{:.2f}_1.json".format(args.dataset, p, 1 - a)
     return "{}/{}".format(data_dir, file_name)
 
 def get_data(p, a):
@@ -31,8 +31,8 @@ def get_data(p, a):
     data = json.load(open(path, 'r'))
     return data
 
-data_dir = "results/grid_search_lr/{}".format(args.dataset)
-plot_dir = "analysis/plots/performance/smoothing"
+data_dir = "results/grid_search/{}/smoothing".format(args.dataset)
+plot_dir = "analysis/plots/grid_search/smoothing2"
 p_grid = np.array([0.05 * i for i in range(3, 21)])
 a_grid = [0.05 * i for i in range(3, 21)]
 
@@ -64,23 +64,25 @@ if (args.graph == "fixed_a"):
 
 if (args.graph == "heatmap"):
     plt.figure(figsize=(3.5, 3))
-    epoch = 60
+    epoch = 400
     data = []
     scatter_data = [[], []]
     for a in reversed(a_grid):
         data.append([get_data(p, a)[args.y][epoch - 1] for p in p_grid])
         scatter_data[0].append(a - 0.025)
-        scatter_data[1].append(p_grid[np.argmax(data[-1])] - 0.025)
+        scatter_data[1].append(p_grid[np.argmin(data[-1])] - 0.025)
     data = np.array(data)[::-1,::-1].T
     plt.scatter(scatter_data[0], scatter_data[1], marker="+", color="red")
-    im = plt.imshow(data, cmap='viridis', extent=[0.1, 1.0, 0.1, 1.0], vmin=0, vmax=100, interpolation='none')
-    plt.colorbar(im,fraction=0.046, pad=0.04)
+    data[0][-1] = data[1][-1] 
+    im = plt.imshow(data, cmap='viridis', extent=[0.1, 1.0, 0.1, 1.0], vmin=0, vmax=2.303, interpolation='none')
+    # plt.colorbar(im,fraction=0.046, pad=0.04)
     
     plt.xlim(0.1, 1.0)
     plt.ylim(0.1, 1.0)
     plt.xlabel("a", fontsize=12)
     plt.ylabel("p", fontsize=12)
     plt.colorbar()
+    plt.tight_layout()
     plt.savefig('{}/smoothing_{}_{}.png'.format(plot_dir, args.graph, args.y))
     print('{}/smoothing_{}_{}.png'.format(plot_dir, args.graph, args.y))
 
@@ -91,7 +93,7 @@ if (args.graph == "progress"):
     completed = sum([sum(d) for d in data])
     total = sum([len(d) for d in data])
     print("{} / {} Experiments Completed".format(completed, total)) 
-    print("{:.2f} %".format(100. * completed / total))  
+    print("{:.2f} %".format(100. * completed / total)) 
     plt.imshow(data, cmap='Blues', extent=[0.15, 1.0, 0.15, 1.0])
     plt.xlabel("p", fontsize=12)
     plt.ylabel("a", fontsize=12)
